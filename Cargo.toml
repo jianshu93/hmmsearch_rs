@@ -11,18 +11,13 @@ path = "src/hmmsearch_rs.rs"
 
 [dependencies]
 
-hmmer-rs = {git = "https://github.com/jianshu93/hmmer-rs"}
+##hmmer-rs = {git = "https://github.com/jianshu93/hmmer-rs"}
+hmmer-rs-2= "0.2.1"
 needletail = { version = "0.5" }
-rayon = { version = "1.10" }
 chrono = { version = "0.4" }
 log = { version = "0.4" }
 env_logger = { version = "0.11" }
 clap = { version = "4.5" }
-
-crossbeam-utils = { version = "0.8" }
-crossbeam-channel = { version = "0.5" }
-crossbeam = { version = "0.8" }
-num_cpus = { version = "1.13.0" }
 
 
 

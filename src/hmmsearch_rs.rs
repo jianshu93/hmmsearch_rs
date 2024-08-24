@@ -1,5 +1,5 @@
 use clap::{Command, Arg, value_parser};
-use hmmer_rs::{Hmm, HmmerPipeline, EaselSequence, Alphabet};
+use hmmer_rs_2::{Hmm, HmmerPipeline, EaselSequence, Alphabet};
 use needletail::parse_fastx_file;
 use std::path::Path;
 use std::fs::File;
@@ -57,38 +57,40 @@ fn main() -> Result<(), Box<dyn Error>> {
     while let Some(Ok(record)) = reader.next() {
         let seq_id = String::from_utf8(record.id().to_vec())?;
         let sequence = record.seq().to_vec();
+        {
+            for hmm in &hmms {
+                let mut hmmsearch = HmmerPipeline::new(hmm);
+                let mut query_seq = EaselSequence::new(Alphabet::Protein);
+                query_seq.replace_sequence(&sequence)?;
+                hmmsearch.query(&query_seq);
+                let hmmsearch_result = hmmsearch.get_results();
+                drop(hmmsearch);
+                unsafe {
+                    if !hmmsearch_result.c_th.is_null() {
+                        let th = &*hmmsearch_result.c_th;
+                        if th.nreported > 0 && !th.hit.is_null() {
+                            let first_hit = &**th.hit.offset(0);
+                            if !(*first_hit).dcl.is_null() {
+                                let first_hit_name = CStr::from_ptr((*first_hit).name).to_string_lossy();
+                                let first_hit_score = (*first_hit).score;
+                                let first_domain = &*(*first_hit).dcl.offset(0);
+                                let first_domain_score = first_domain.bitscore;
+                                let first_domain_evalue = first_domain.lnP.exp() * (*hmmsearch_result.c_pli).Z;
 
-        for hmm in &hmms {
-            let mut hmmsearch = HmmerPipeline::new(hmm);
-            let mut query_seq = EaselSequence::new(Alphabet::Protein);
-            query_seq.replace_sequence(&sequence)?;
-            hmmsearch.query(&query_seq);
-            let hmmsearch_result = hmmsearch.get_results();
-
-            unsafe {
-                if !hmmsearch_result.c_th.is_null() {
-                    let th = &*hmmsearch_result.c_th;
-                    if th.nreported > 0 && !th.hit.is_null() {
-                        let first_hit = &**th.hit.offset(0);
-                        if !(*first_hit).dcl.is_null() {
-                            let first_hit_name = CStr::from_ptr((*first_hit).name).to_string_lossy();
-                            let first_hit_score = (*first_hit).score;
-                            let first_domain = &*(*first_hit).dcl.offset(0);
-                            let first_domain_score = first_domain.bitscore;
-                            let first_domain_evalue = first_domain.lnP.exp() * (*hmmsearch_result.c_pli).Z;
-
-                            results.push((
-                                first_hit_score,
-                                hmm.name().to_string(),
-                                th.nreported.try_into().unwrap(), // Convert here
-                                first_hit_name.to_string(),
-                                first_domain_score,
-                                first_domain_evalue,
-                                seq_id.clone()
-                            ));
+                                results.push((
+                                    first_hit_score,
+                                    hmm.name().to_string(),
+                                    th.nreported.try_into().unwrap(), // Convert here
+                                    first_hit_name.to_string(),
+                                    first_domain_score,
+                                    first_domain_evalue,
+                                    seq_id.clone()
+                                ));
+                            }
                         }
                     }
                 }
+                drop(hmmsearch_result);
             }
         }
     }
