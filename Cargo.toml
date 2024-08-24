@@ -2,7 +2,7 @@
 name = "hmmsearch_rs"
 version = "0.1.0"
 edition = "2021"
-authors =  "Jianshu Zhao"
+authors =  "https://github.com/jianshu93"
 repository = "https://github.com/jianshu93/hmmsearch_rs"
 license = "MIT OR Apache-2.0"
 description = "gene prediction, Hidden Markov models"
